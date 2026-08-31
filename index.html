@@ -85,20 +85,11 @@ a { color: var(--accent); }
 }
 #themetoggle:hover { background: var(--code-bg); }
 
-header.doc { text-align: center; margin: 1.4rem 0 2.2rem; }
-p.course {
-  font-family: var(--font-ui);
-  font-size: .78rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin: 0 0 .3rem;
-}
+header.doc { text-align: center; margin: 1rem 0 1.5rem; }
 header.doc h1 { font-size: 1.6rem; margin: 0; font-weight: 700; }
 p.tagline { color: var(--muted); font-size: .95rem; margin: .4rem 0 0; }
 
-.panel { background: var(--card-bg); padding: 1.15rem 1.35rem; margin: 1.6rem 0; }
+.panel { background: var(--card-bg); padding: 1.15rem 1.35rem; margin: 1.1rem 0; }
 .card-title {
   font-family: var(--font-ui);
   font-size: .78rem;
@@ -140,7 +131,7 @@ select, input[type="number"], input.scalar {
 }
 select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 input[type="number"] { width: 4.2rem; }
-input.scalar { width: 5rem; text-align: center; }
+input.scalar { width: 4.5ch; min-width: 4.5ch; text-align: center; }
 label.fld {
   font-family: var(--font-ui);
   font-size: .85rem;
@@ -195,7 +186,11 @@ input.cell.bad { outline: 2px solid var(--alert); outline-offset: -1px; }
 .gutter:focus-visible { outline: 1px dashed var(--accent); }
 
 /* --- reduce mode --- */
-.workhead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+#workpanel { position: relative; }
+#workpanel .badge { position: absolute; top: 1.1rem; right: 1.35rem; }
+.workgrid { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+.workside { display: flex; flex-direction: column; align-items: flex-start; gap: .45rem; }
+.workside .card-title { margin: 0 0 .35rem; }
 .badge {
   font-family: var(--font-ui);
   font-size: .75rem;
@@ -210,14 +205,14 @@ input.cell.bad { outline: 2px solid var(--alert); outline-offset: -1px; }
 #workpanel.good { background: var(--sol-bg); }
 #workpanel.good button.filebox { background: var(--bg); }
 #workpanel.good button.filebox:hover { background: var(--accent); color: var(--bg); }
-.texmat { font-size: 1.2rem; text-align: center; overflow-x: auto; padding: .5rem 0; }
+.texmat { font-size: 1.2rem; text-align: center; overflow-x: auto; padding: .2rem 0; flex: 1 1 14rem; }
 
-.ops { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr)); gap: 1.1rem; margin: 1.6rem 0; }
-.opcard { background: var(--card-bg); padding: 1rem 1.15rem; display: flex; flex-direction: column; }
+.ops { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr)); gap: .9rem; margin: 1.1rem 0; }
+.opcard { background: var(--card-bg); padding: .9rem 1.15rem 0.6rem; }
+.ophead { display: flex; align-items: center; justify-content: space-between; gap: .8rem; min-height: 2.1rem; margin-bottom: .45rem; }
+.ophead .card-title { margin: 0; }
+.oppreview { color: var(--muted); text-align: right; }
 .opform { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: .95rem; }
-.opform .nw { white-space: nowrap; display: inline-flex; align-items: center; gap: .5rem; }
-.oppreview { min-height: 2rem; margin: .7rem 0 .2rem; color: var(--muted); text-align: center; }
-.opcard .btnrow { margin-top: auto; padding-top: .4rem; }
 
 h2.index-head {
   display: flex;
@@ -230,7 +225,7 @@ h2.index-head {
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 2.4rem 0 1rem;
+  margin: 1.8rem 0 .9rem;
 }
 h2.index-head::before, h2.index-head::after {
   content: '';
@@ -263,9 +258,8 @@ footer.doc {
 <button id="themetoggle" aria-label="Toggle light or dark theme" title="Toggle light/dark"></button>
 <main>
   <header class="doc">
-    <p class="course">Interactive Linear Algebra</p>
     <h1>Row Reducer</h1>
-    <p class="tagline">Practice row reduction with exact arithmetic.</p>
+    <p class="tagline">Interactive row reduction with exact arithmetic.</p>
   </header>
 
   <!-- ============ setup ============ -->
@@ -315,52 +309,46 @@ footer.doc {
   <!-- ============ reduce mode ============ -->
   <section id="reducer" hidden>
     <div class="panel" id="workpanel">
-      <div class="workhead">
-        <p class="card-title">Current matrix</p>
-        <span id="statusBadge" class="badge" role="status" aria-live="polite" hidden></span>
-      </div>
-      <div id="currentMat" class="texmat"></div>
-      <div class="btnrow">
-        <button class="filebox" id="undoBtn">&#8630; Undo</button>
-        <button class="filebox" id="restartBtn">Restart</button>
-        <button class="filebox" id="backToEdit">&larr; Edit matrix</button>
-        <button class="filebox" id="copyLink">Copy link</button>
+      <span id="statusBadge" class="badge" role="status" aria-live="polite" hidden></span>
+      <div class="workgrid">
+        <div class="workside">
+          <p class="card-title">Current matrix</p>
+          <button class="filebox" id="undoBtn">&#8630; Undo</button>
+          <button class="filebox" id="restartBtn">Restart</button>
+          <button class="filebox" id="backToEdit">&larr; Edit matrix</button>
+          <button class="filebox" id="copyLink">Copy link</button>
+        </div>
+        <div id="currentMat" class="texmat"></div>
       </div>
     </div>
 
     <div class="ops">
       <div class="opcard">
-        <p class="card-title">Scale</p>
+        <div class="ophead"><p class="card-title">Scale</p><div class="oppreview" id="scPrev"></div></div>
         <div class="opform">
           <select id="scRow" aria-label="Row to scale"></select>
-          <span>&larr;</span>
-          <span class="nw"><input class="scalar" id="scC" placeholder="c" aria-label="Scale factor"> &middot; <span id="scEcho">R1</span></span>
+          <input class="scalar" id="scC" placeholder="c" aria-label="Scale factor">
+          <button class="filebox" id="scApply">Apply</button>
         </div>
-        <div class="oppreview" id="scPrev"></div>
-        <div class="btnrow"><button class="filebox" id="scApply">Apply</button></div>
         <p class="msg" id="scMsg"></p>
       </div>
       <div class="opcard">
-        <p class="card-title">Swap</p>
+        <div class="ophead"><p class="card-title">Swap</p><div class="oppreview" id="swPrev"></div></div>
         <div class="opform">
           <select id="swA" aria-label="First row to swap"></select>
-          <span>&#8596;</span>
           <select id="swB" aria-label="Second row to swap"></select>
+          <button class="filebox" id="swApply">Apply</button>
         </div>
-        <div class="oppreview" id="swPrev"></div>
-        <div class="btnrow"><button class="filebox" id="swApply">Apply</button></div>
         <p class="msg" id="swMsg"></p>
       </div>
       <div class="opcard">
-        <p class="card-title">Combine</p>
+        <div class="ophead"><p class="card-title">Combine</p><div class="oppreview" id="cbPrev"></div></div>
         <div class="opform">
           <select id="cbI" aria-label="Row to replace"></select>
-          <span>&larr;</span>
-          <span id="cbEcho">R1</span>
-          <span class="nw">+ <input class="scalar" id="cbC" placeholder="c" aria-label="Multiple of the other row"> &middot; <select id="cbJ" aria-label="Row to add a multiple of"></select></span>
+          <input class="scalar" id="cbC" placeholder="c" aria-label="Multiple of the other row">
+          <select id="cbJ" aria-label="Row to add a multiple of"></select>
+          <button class="filebox" id="cbApply">Apply</button>
         </div>
-        <div class="oppreview" id="cbPrev"></div>
-        <div class="btnrow"><button class="filebox" id="cbApply">Apply</button></div>
         <p class="msg" id="cbMsg"></p>
       </div>
     </div>
@@ -370,8 +358,7 @@ footer.doc {
   </section>
 
   <footer class="doc">
-    Row Reducer &middot; a companion to <a href="https://github.com/tghyde/hwgenie">hwGenie</a> course sites
-    &middot; <a href="https://github.com/tghyde/rowreducer">source</a>
+    <a href="https://github.com/tghyde/rowreducer">Row Reducer</a>
   </footer>
 </main>
 
@@ -486,11 +473,16 @@ function coefTex(c) {
 }
 function opTex(op) {
   if (op.t === "swap") return rTex(op.i) + " \\leftrightarrow " + rTex(op.j);
-  if (op.t === "scale") return rTex(op.i) + " \\leftarrow " + coefTex(op.c) + rTex(op.i);
+  if (op.t === "scale") return rTex(op.i) + " \\to " + coefTex(op.c) + rTex(op.i);
   var neg = op.c.isNeg();
   var a = neg ? op.c.neg() : op.c;
-  return rTex(op.i) + " \\leftarrow " + rTex(op.i) + (neg ? " - " : " + ") +
+  return rTex(op.i) + " \\to " + rTex(op.i) + (neg ? " - " : " + ") +
     (a.isOne() ? "" : a.tex() + "\\,") + rTex(op.j);
+}
+/* Negative entries render as \llap{-} + |value| so the digits stay centered
+ * in their column and the minus sign protrudes to the left. */
+function cellTex(x) {
+  return x.isNeg() ? "\\llap{-}" + x.neg().tex() : x.tex();
 }
 function matrixTex(M, bars) {
   var cols = M[0].length, spec = "";
@@ -499,7 +491,7 @@ function matrixTex(M, bars) {
     if (bars.has(j)) spec += "|";
   }
   var body = M.map(function (r) {
-    return r.map(function (x) { return x.tex(); }).join(" & ");
+    return r.map(cellTex).join(" & ");
   }).join(" \\\\ ");
   return "\\left[\\begin{array}{" + spec + "} " + body + " \\end{array}\\right]";
 }
@@ -826,14 +818,12 @@ function pushOp(op) {
 /* live previews under each op card */
 function updatePreviews() {
   var i = Number($("scRow").value), c = parseEntry($("scC").value);
-  $("scEcho").textContent = "R" + (i + 1);
-  kt($("scPrev"), rTex(i) + " \\leftarrow " + (c ? coefTex(c) : "c\\,") + rTex(i), false);
+  kt($("scPrev"), rTex(i) + " \\to " + (c ? coefTex(c) : "c\\,") + rTex(i), false);
 
   var a = Number($("swA").value), b = Number($("swB").value);
   kt($("swPrev"), rTex(a) + " \\leftrightarrow " + rTex(b), false);
 
   var ti = Number($("cbI").value), tj = Number($("cbJ").value), tc = parseEntry($("cbC").value);
-  $("cbEcho").textContent = "R" + (ti + 1);
   var mid;
   if (tc) {
     var neg = tc.isNeg(), abs = neg ? tc.neg() : tc;
@@ -841,7 +831,7 @@ function updatePreviews() {
   } else {
     mid = " + c\\,";
   }
-  kt($("cbPrev"), rTex(ti) + " \\leftarrow " + rTex(ti) + mid + rTex(tj), false);
+  kt($("cbPrev"), rTex(ti) + " \\to " + rTex(ti) + mid + rTex(tj), false);
 }
 
 /* ===================== wiring ===================== */
@@ -905,15 +895,12 @@ function init() {
     syncHash();
   });
   $("backToSetup").addEventListener("click", function () {
-    if (gridIsNonzero() && !confirm("Discard this matrix?")) return;
     clearHash();
     setMode("setup");
   });
 
   /* reduce mode controls */
   $("backToEdit").addEventListener("click", function () {
-    if (state.history.length > 1 &&
-        !confirm("Return to editing? This clears the operation history.")) return;
     buildGrid(stringValues(state.initial));
     clearHash();
     setMode("edit");
@@ -926,7 +913,7 @@ function init() {
     }
   });
   $("restartBtn").addEventListener("click", function () {
-    if (state.history.length > 1 && confirm("Clear all row operations and return to the starting matrix?")) {
+    if (state.history.length > 1) {
       state.history = state.history.slice(0, 1);
       renderAll();
       syncHash();
@@ -977,7 +964,11 @@ function init() {
     $(id).addEventListener("change", updatePreviews);
   });
   ["scC", "cbC"].forEach(function (id) {
-    $(id).addEventListener("input", updatePreviews);
+    $(id).addEventListener("input", function () {
+      /* grow the box when a long scalar is typed; never shrink below default */
+      this.style.width = Math.max(4.5, this.value.length + 2) + "ch";
+      updatePreviews();
+    });
   });
 
   /* shared-link loading */
