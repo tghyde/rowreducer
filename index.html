@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Row Reducer</title>
+<meta name="description" content="Interactive row reduction practice tool for linear algebra.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2324589f'/%3E%3Cpath d='M10 6 H7 V26 H10 M22 6 H25 V26 H22' stroke='%23faf9f6' stroke-width='2.5' fill='none'/%3E%3Ccircle cx='13.5' cy='11' r='1.8' fill='%23faf9f6'/%3E%3Ccircle cx='18.5' cy='16' r='1.8' fill='%23faf9f6'/%3E%3Ccircle cx='13.5' cy='21' r='1.8' fill='%23faf9f6' opacity='.45'/%3E%3Ccircle cx='18.5' cy='11' r='1.8' fill='%23faf9f6' opacity='.45'/%3E%3Ccircle cx='13.5' cy='16' r='1.8' fill='%23faf9f6' opacity='.45'/%3E%3Ccircle cx='18.5' cy='21' r='1.8' fill='%23faf9f6'/%3E%3C/svg%3E">
+<script>(function(){try{var t=localStorage.getItem('hwg-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
+<style>
+:root {
+  --bg: #faf9f6;
+  --fg: #20242a;
+  --muted: #5d646f;
+  --accent: #24589f;
+  --alert: #b3223a;
+  --border: #dcdad0;
+  --card-bg: #efeee8;
+  --sol-bg: #e6efe6;
+  --sol-accent: #2c6a3f;
+  --code-bg: #f1f0ea;
+  --hover-bg: #e2e8f3;
+  --font-body: Charter, "Bitstream Charter", Georgia, "Times New Roman", serif;
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c;
+    --fg: #e7e5e0;
+    --muted: #9aa1ad;
+    --accent: #8db1ea;
+    --alert: #e87a90;
+    --border: #33363e;
+    --card-bg: #1f222a;
+    --sol-bg: #1c2721;
+    --sol-accent: #98cda5;
+    --code-bg: #22252d;
+    --hover-bg: #2b3242;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171c;
+  --fg: #e7e5e0;
+  --muted: #9aa1ad;
+  --accent: #8db1ea;
+  --alert: #e87a90;
+  --border: #33363e;
+  --card-bg: #1f222a;
+  --sol-bg: #1c2721;
+  --sol-accent: #98cda5;
+  --code-bg: #22252d;
+  --hover-bg: #2b3242;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+@media (prefers-reduced-motion: no-preference) {
+  body { transition: background-color .2s ease, color .2s ease; }
+}
+main { max-width: 48rem; margin: 0 auto; padding: 1.25rem 1.1rem 4rem; }
+a { color: var(--accent); }
+
+#themetoggle {
+  position: fixed;
+  top: .5rem;
+  right: .7rem;
+  z-index: 60;
+  background: var(--card-bg);
+  color: var(--fg);
+  border: none;
+  padding: .3rem .6rem;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+#themetoggle:hover { background: var(--code-bg); }
+
+header.doc { text-align: center; margin: 1.4rem 0 2.2rem; }
+p.course {
+  font-family: var(--font-ui);
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 .3rem;
+}
+header.doc h1 { font-size: 1.6rem; margin: 0; font-weight: 700; }
+p.tagline { color: var(--muted); font-size: .95rem; margin: .4rem 0 0; }
+
+.panel { background: var(--card-bg); padding: 1.15rem 1.35rem; margin: 1.6rem 0; }
+.card-title {
+  font-family: var(--font-ui);
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 .8rem;
+}
+p.hint { font-family: var(--font-ui); font-size: .85rem; color: var(--muted); margin: .2rem 0 .9rem; }
+.msg { color: var(--alert); font-family: var(--font-ui); font-size: .8rem; min-height: 1.2em; margin: .5rem 0 0; }
+
+button.filebox {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: var(--bg);
+  border: none;
+  padding: .3rem .7rem;
+  font-family: var(--font-ui);
+  font-size: .85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--accent);
+  cursor: pointer;
+}
+button.filebox:hover { background: var(--accent); color: var(--bg); }
+button.filebox:disabled { color: var(--muted); cursor: default; }
+button.filebox:disabled:hover { background: var(--bg); }
+.btnrow { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; align-items: center; }
+
+select, input[type="number"], input.scalar {
+  font-family: var(--font-mono);
+  font-size: .95rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: .3rem .4rem;
+}
+select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+input[type="number"] { width: 4.2rem; }
+input.scalar { width: 5rem; text-align: center; }
+label.fld {
+  font-family: var(--font-ui);
+  font-size: .85rem;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.setupgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.2rem; }
+.setupcard { background: var(--card-bg); padding: 1.05rem 1.25rem; }
+.setuprow { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; margin: .6rem 0 .9rem; }
+
+/* --- matrix entry grid --- */
+.matwrap {
+  display: flex;
+  justify-content: safe center;
+  align-items: stretch;
+  overflow-x: auto;
+  padding: .6rem 0 .8rem;
+}
+.bracket { flex: 0 0 .5rem; border: 2px solid var(--fg); }
+.bracket.bl { border-right: none; margin-right: .25rem; }
+.bracket.br { border-left: none; margin-left: .25rem; }
+#grid { display: grid; row-gap: .35rem; align-content: center; padding: .45rem 0; }
+input.cell {
+  font-family: var(--font-mono);
+  font-size: .95rem;
+  text-align: center;
+  width: 100%;
+  min-width: 3.2rem;
+  padding: .38rem .2rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+input.cell:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+input.cell.bad { outline: 2px solid var(--alert); outline-offset: -1px; }
+.gutter { cursor: pointer; position: relative; min-width: 1.15rem; }
+.gutter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -.45rem;
+  bottom: -.45rem;
+  width: 2px;
+  transform: translateX(-50%);
+  background: transparent;
+}
+.gutter:hover::after, .gutter:focus-visible::after { background: var(--muted); opacity: .4; }
+.gutter.on::after, .gutter.on:hover::after { background: var(--fg); opacity: 1; }
+.gutter:focus-visible { outline: 1px dashed var(--accent); }
+
+/* --- reduce mode --- */
+.workhead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.badge {
+  font-family: var(--font-ui);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: .28rem .65rem;
+  background: var(--sol-bg);
+  color: var(--sol-accent);
+}
+.badge.rref { background: var(--sol-accent); color: var(--bg); }
+#workpanel.good { background: var(--sol-bg); }
+#workpanel.good button.filebox { background: var(--bg); }
+#workpanel.good button.filebox:hover { background: var(--accent); color: var(--bg); }
+.texmat { font-size: 1.2rem; text-align: center; overflow-x: auto; padding: .5rem 0; }
+
+.ops { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr)); gap: 1.1rem; margin: 1.6rem 0; }
+.opcard { background: var(--card-bg); padding: 1rem 1.15rem; display: flex; flex-direction: column; }
+.opform { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: .95rem; }
+.opform .nw { white-space: nowrap; display: inline-flex; align-items: center; gap: .5rem; }
+.oppreview { min-height: 2rem; margin: .7rem 0 .2rem; color: var(--muted); text-align: center; }
+.opcard .btnrow { margin-top: auto; padding-top: .4rem; }
+
+h2.index-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  font-family: var(--font-ui);
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 2.4rem 0 1rem;
+}
+h2.index-head::before, h2.index-head::after {
+  content: '';
+  width: 4.5rem;
+  border-top: 1px dashed var(--border);
+}
+.hstep { text-align: center; }
+.hlabel {
+  font-family: var(--font-ui);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 .2rem;
+}
+.hop { margin: .5rem 0; color: var(--muted); font-size: 1rem; }
+.hmat { overflow-x: auto; font-size: 1.05rem; padding: .15rem 0; }
+
+footer.doc {
+  margin-top: 3.5rem;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: .78rem;
+  color: var(--muted);
+}
+</style>
+</head>
+<body>
+<button id="themetoggle" aria-label="Toggle light or dark theme" title="Toggle light/dark"></button>
+<main>
+  <header class="doc">
+    <p class="course">Interactive Linear Algebra</p>
+    <h1>Row Reducer</h1>
+    <p class="tagline">Practice row reduction with exact arithmetic.</p>
+  </header>
+
+  <!-- ============ setup ============ -->
+  <section id="setup">
+    <div class="setupgrid">
+      <div class="setupcard">
+        <p class="card-title">Start from a matrix</p>
+        <div class="setuprow">
+          <label class="fld">Rows <input type="number" id="suRows" min="1" max="10" value="3"></label>
+          <span>&times;</span>
+          <label class="fld">Columns <input type="number" id="suCols" min="1" max="12" value="4"></label>
+        </div>
+        <button class="filebox" id="suMake">Create matrix</button>
+        <p class="msg" id="suMsg"></p>
+      </div>
+      <div class="setupcard">
+        <p class="card-title">Start from a linear system</p>
+        <div class="setuprow">
+          <label class="fld">Equations <input type="number" id="suEq" min="1" max="10" value="3"></label>
+          <label class="fld">Variables <input type="number" id="suVar" min="1" max="11" value="3"></label>
+        </div>
+        <button class="filebox" id="suMakeSys">Create augmented matrix</button>
+        <p class="hint" style="margin:.6rem 0 0">Builds the augmented matrix [&thinsp;A&thinsp;|&thinsp;b&thinsp;] for the system.</p>
+        <p class="msg" id="suSysMsg"></p>
+      </div>
+    </div>
+    <p class="msg" id="hashMsg"></p>
+  </section>
+
+  <!-- ============ edit mode ============ -->
+  <section id="editor" class="panel" hidden>
+    <p class="card-title">Enter your matrix</p>
+    <p class="hint">Entries can be integers (<code>-3</code>), fractions (<code>1/2</code>), or decimals (<code>0.25</code>).
+    Click the gap between two columns to toggle an augmentation line.</p>
+    <div class="matwrap">
+      <div class="bracket bl" aria-hidden="true"></div>
+      <div id="grid"></div>
+      <div class="bracket br" aria-hidden="true"></div>
+    </div>
+    <div class="btnrow">
+      <button class="filebox" id="toReduce">Reduce &rarr;</button>
+      <button class="filebox" id="backToSetup">New matrix</button>
+    </div>
+    <p class="msg" id="editMsg"></p>
+  </section>
+
+  <!-- ============ reduce mode ============ -->
+  <section id="reducer" hidden>
+    <div class="panel" id="workpanel">
+      <div class="workhead">
+        <p class="card-title">Current matrix</p>
+        <span id="statusBadge" class="badge" role="status" aria-live="polite" hidden></span>
+      </div>
+      <div id="currentMat" class="texmat"></div>
+      <div class="btnrow">
+        <button class="filebox" id="undoBtn">&#8630; Undo</button>
+        <button class="filebox" id="restartBtn">Restart</button>
+        <button class="filebox" id="backToEdit">&larr; Edit matrix</button>
+        <button class="filebox" id="copyLink">Copy link</button>
+      </div>
+    </div>
+
+    <div class="ops">
+      <div class="opcard">
+        <p class="card-title">Scale</p>
+        <div class="opform">
+          <select id="scRow" aria-label="Row to scale"></select>
+          <span>&larr;</span>
+          <span class="nw"><input class="scalar" id="scC" placeholder="c" aria-label="Scale factor"> &middot; <span id="scEcho">R1</span></span>
+        </div>
+        <div class="oppreview" id="scPrev"></div>
+        <div class="btnrow"><button class="filebox" id="scApply">Apply</button></div>
+        <p class="msg" id="scMsg"></p>
+      </div>
+      <div class="opcard">
+        <p class="card-title">Swap</p>
+        <div class="opform">
+          <select id="swA" aria-label="First row to swap"></select>
+          <span>&#8596;</span>
+          <select id="swB" aria-label="Second row to swap"></select>
+        </div>
+        <div class="oppreview" id="swPrev"></div>
+        <div class="btnrow"><button class="filebox" id="swApply">Apply</button></div>
+        <p class="msg" id="swMsg"></p>
+      </div>
+      <div class="opcard">
+        <p class="card-title">Combine</p>
+        <div class="opform">
+          <select id="cbI" aria-label="Row to replace"></select>
+          <span>&larr;</span>
+          <span id="cbEcho">R1</span>
+          <span class="nw">+ <input class="scalar" id="cbC" placeholder="c" aria-label="Multiple of the other row"> &middot; <select id="cbJ" aria-label="Row to add a multiple of"></select></span>
+        </div>
+        <div class="oppreview" id="cbPrev"></div>
+        <div class="btnrow"><button class="filebox" id="cbApply">Apply</button></div>
+        <p class="msg" id="cbMsg"></p>
+      </div>
+    </div>
+
+    <h2 class="index-head" id="historyHead">History</h2>
+    <div id="historyList"></div>
+  </section>
+
+  <footer class="doc">
+    Row Reducer &middot; a companion to <a href="https://github.com/tghyde/hwgenie">hwGenie</a> course sites
+    &middot; <a href="https://github.com/tghyde/rowreducer">source</a>
+  </footer>
+</main>
+
+<script>
+"use strict";
+(function () {
+
+/* ===================== exact rational arithmetic =====================
+ * Entries implement a small value interface (add, mul, neg, isZero,
+ * isOne, tex, toString, parse) so that symbolic entries (variables)
+ * can be added later without touching the row-operation or rendering
+ * code — only parseEntry() and a new value class would change.
+ */
+function bgcd(a, b) {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b) { var t = a % b; a = b; b = t; }
+  return a;
+}
+
+function Frac(n, d) {
+  if (d === undefined) d = 1n;
+  if (d === 0n) throw new Error("zero denominator");
+  if (d < 0n) { n = -n; d = -d; }
+  var g = bgcd(n, d);
+  if (g === 0n) g = 1n;
+  this.n = n / g;
+  this.d = d / g;
+}
+Frac.prototype.add = function (o) { return new Frac(this.n * o.d + o.n * this.d, this.d * o.d); };
+Frac.prototype.mul = function (o) { return new Frac(this.n * o.n, this.d * o.d); };
+Frac.prototype.neg = function () { return new Frac(-this.n, this.d); };
+Frac.prototype.isZero = function () { return this.n === 0n; };
+Frac.prototype.isOne = function () { return this.n === 1n && this.d === 1n; };
+Frac.prototype.isNeg = function () { return this.n < 0n; };
+Frac.prototype.tex = function () {
+  if (this.d === 1n) return this.n.toString();
+  var s = this.n < 0n ? "-" : "";
+  var a = (this.n < 0n ? -this.n : this.n).toString();
+  return s + "\\frac{" + a + "}{" + this.d.toString() + "}";
+};
+Frac.prototype.toString = function () {
+  return this.d === 1n ? this.n.toString() : this.n.toString() + "/" + this.d.toString();
+};
+/* Accepts "3", "-3", "+3", "1/2", "-3/4", "0.25", ".5", "2." — returns null if unreadable. */
+function parseEntry(s) {
+  if (typeof s !== "string") return null;
+  s = s.replace(/\s+/g, "");
+  if (s === "") return null;
+  var m = s.match(/^([+-]?\d+)\/([+-]?\d+)$/);
+  if (m) {
+    var den = BigInt(m[2]);
+    if (den === 0n) return null;
+    return new Frac(BigInt(m[1]), den);
+  }
+  m = s.match(/^([+-]?)(\d*)(?:\.(\d*))?$/);
+  if (!m) return null;
+  var ip = m[2] || "", fp = m[3] || "";
+  if (ip === "" && fp === "") return null;
+  var n = BigInt((ip || "0") + fp);
+  var d = 10n ** BigInt(fp.length);
+  if (m[1] === "-") n = -n;
+  return new Frac(n, d);
+}
+
+/* ===================== matrix helpers ===================== */
+var MAXR = 10, MAXC = 12;
+
+function applyOp(M, op) {
+  var N = M.map(function (r) { return r.slice(); });
+  if (op.t === "scale") {
+    N[op.i] = N[op.i].map(function (x) { return x.mul(op.c); });
+  } else if (op.t === "swap") {
+    var tmp = N[op.i]; N[op.i] = N[op.j]; N[op.j] = tmp;
+  } else if (op.t === "combine") {
+    N[op.i] = N[op.i].map(function (x, k) { return x.add(op.c.mul(M[op.j][k])); });
+  }
+  return N;
+}
+
+/* REF: zero rows at the bottom; each leading entry strictly right of the one
+ * above (leading entries need NOT be 1).  RREF: additionally every pivot is 1
+ * and is the only nonzero entry in its column. */
+function analyze(M) {
+  var lead = M.map(function (r) {
+    for (var k = 0; k < r.length; k++) if (!r[k].isZero()) return k;
+    return -1;
+  });
+  var seenZero = false, prev = -1, i;
+  for (i = 0; i < M.length; i++) {
+    if (lead[i] === -1) { seenZero = true; continue; }
+    if (seenZero || lead[i] <= prev) return "none";
+    prev = lead[i];
+  }
+  for (i = 0; i < M.length; i++) {
+    var k = lead[i];
+    if (k === -1) continue;
+    if (!M[i][k].isOne()) return "ref";
+    for (var i2 = 0; i2 < M.length; i2++) {
+      if (i2 !== i && !M[i2][k].isZero()) return "ref";
+    }
+  }
+  return "rref";
+}
+
+/* ===================== TeX builders ===================== */
+function rTex(i) { return "R_{" + (i + 1) + "}"; }
+function coefTex(c) {
+  if (c.isOne()) return "";
+  if (c.n === -1n && c.d === 1n) return "-";
+  return c.tex() + "\\,";
+}
+function opTex(op) {
+  if (op.t === "swap") return rTex(op.i) + " \\leftrightarrow " + rTex(op.j);
+  if (op.t === "scale") return rTex(op.i) + " \\leftarrow " + coefTex(op.c) + rTex(op.i);
+  var neg = op.c.isNeg();
+  var a = neg ? op.c.neg() : op.c;
+  return rTex(op.i) + " \\leftarrow " + rTex(op.i) + (neg ? " - " : " + ") +
+    (a.isOne() ? "" : a.tex() + "\\,") + rTex(op.j);
+}
+function matrixTex(M, bars) {
+  var cols = M[0].length, spec = "";
+  for (var j = 0; j < cols; j++) {
+    spec += "c";
+    if (bars.has(j)) spec += "|";
+  }
+  var body = M.map(function (r) {
+    return r.map(function (x) { return x.tex(); }).join(" & ");
+  }).join(" \\\\ ");
+  return "\\left[\\begin{array}{" + spec + "} " + body + " \\end{array}\\right]";
+}
+function kt(el, tex, display) {
+  if (window.katex) {
+    katex.render(tex, el, { displayMode: !!display, throwOnError: false });
+  } else {
+    el.textContent = tex;
+  }
+}
+
+/* ===================== state ===================== */
+var state = {
+  mode: "setup",
+  rows: 3,
+  cols: 4,
+  bars: new Set(),   // boundary j = line after column j (0-based), j in [0, cols-2]
+  initial: null,     // Frac[][]
+  history: []        // [{op: null|{t,i,j,c}, M: Frac[][]}]
+};
+var lastHash = "";
+
+function $(id) { return document.getElementById(id); }
+
+/* ===================== share links =====================
+ * State is serialized as versioned JSON -> UTF-8 -> base64url in the
+ * URL fragment: {v, r, c, b:[boundaries], m:[["1","-1/2",...]], o:[ops]}
+ * with ops ["s",i,"c"] | ["w",i,j] | ["c",i,j,"c"].  Entries are strings
+ * so a future version can carry symbolic expressions unchanged.
+ */
+function b64urlEncode(str) {
+  var bytes = new TextEncoder().encode(str), bin = "";
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64urlDecode(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  var bin = atob(s), bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function encodeState() {
+  var o = {
+    v: 1,
+    r: state.rows,
+    c: state.cols,
+    b: Array.from(state.bars).sort(function (a, b) { return a - b; }),
+    m: state.initial.map(function (row) {
+      return row.map(function (f) { return f.toString(); });
+    }),
+    o: state.history.slice(1).map(function (h) {
+      var p = h.op;
+      if (p.t === "swap") return ["w", p.i, p.j];
+      if (p.t === "scale") return ["s", p.i, p.c.toString()];
+      return ["c", p.i, p.j, p.c.toString()];
+    })
+  };
+  return b64urlEncode(JSON.stringify(o));
+}
+function decodeState(hash) {
+  try {
+    var o = JSON.parse(b64urlDecode(hash));
+    if (o.v !== 1) return null;
+    var r = o.r, c = o.c;
+    if (!Number.isInteger(r) || !Number.isInteger(c) ||
+        r < 1 || r > MAXR || c < 1 || c > MAXC) return null;
+    if (!Array.isArray(o.m) || o.m.length !== r) return null;
+    var M = [];
+    for (var i = 0; i < r; i++) {
+      if (!Array.isArray(o.m[i]) || o.m[i].length !== c) return null;
+      var row = [];
+      for (var j = 0; j < c; j++) {
+        var f = parseEntry(String(o.m[i][j]));
+        if (!f) return null;
+        row.push(f);
+      }
+      M.push(row);
+    }
+    var bars = new Set();
+    if (!Array.isArray(o.b)) return null;
+    for (var k = 0; k < o.b.length; k++) {
+      var bj = o.b[k];
+      if (!Number.isInteger(bj) || bj < 0 || bj > c - 2) return null;
+      bars.add(bj);
+    }
+    var ops = [];
+    if (!Array.isArray(o.o)) return null;
+    for (k = 0; k < o.o.length; k++) {
+      var p = o.o[k], op = null, cf;
+      if (!Array.isArray(p)) return null;
+      if (p[0] === "w") {
+        if (!validRow(p[1], r) || !validRow(p[2], r) || p[1] === p[2]) return null;
+        op = { t: "swap", i: p[1], j: p[2] };
+      } else if (p[0] === "s") {
+        cf = parseEntry(String(p[2]));
+        if (!validRow(p[1], r) || !cf || cf.isZero()) return null;
+        op = { t: "scale", i: p[1], c: cf };
+      } else if (p[0] === "c") {
+        cf = parseEntry(String(p[3]));
+        if (!validRow(p[1], r) || !validRow(p[2], r) || p[1] === p[2] || !cf || cf.isZero()) return null;
+        op = { t: "combine", i: p[1], j: p[2], c: cf };
+      } else return null;
+      ops.push(op);
+    }
+    return { rows: r, cols: c, bars: bars, initial: M, ops: ops };
+  } catch (e) {
+    return null;
+  }
+}
+function validRow(i, r) { return Number.isInteger(i) && i >= 0 && i < r; }
+
+function syncHash() {
+  lastHash = encodeState();
+  window.history.replaceState(null, "", "#" + lastHash);
+}
+function clearHash() {
+  lastHash = "";
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+}
+function loadFromHash() {
+  var h = window.location.hash.slice(1);
+  if (!h) return false;
+  var dec = decodeState(h);
+  if (!dec) {
+    $("hashMsg").textContent = "Couldn’t read the shared link — starting fresh.";
+    return false;
+  }
+  state.rows = dec.rows;
+  state.cols = dec.cols;
+  state.bars = dec.bars;
+  state.initial = dec.initial;
+  state.history = [{ op: null, M: dec.initial }];
+  for (var k = 0; k < dec.ops.length; k++) {
+    state.history.push({ op: dec.ops[k], M: applyOp(current(), dec.ops[k]) });
+  }
+  lastHash = h;
+  buildGrid(stringValues(dec.initial));
+  enterReduceUI();
+  return true;
+}
+
+/* ===================== mode switching ===================== */
+function setMode(m) {
+  state.mode = m;
+  $("setup").hidden = m !== "setup";
+  $("editor").hidden = m !== "edit";
+  $("reducer").hidden = m !== "reduce";
+}
+function current() { return state.history[state.history.length - 1].M; }
+function stringValues(M) {
+  return M.map(function (r) { return r.map(function (f) { return f.toString(); }); });
+}
+
+/* ===================== edit-mode grid ===================== */
+function buildGrid(values) {
+  var grid = $("grid");
+  grid.innerHTML = "";
+  var tmpl = [];
+  for (var j = 0; j < state.cols; j++) {
+    tmpl.push("minmax(3.2rem, 4.5rem)");
+    if (j < state.cols - 1) tmpl.push("1.15rem");
+  }
+  grid.style.gridTemplateColumns = tmpl.join(" ");
+  for (var r = 0; r < state.rows; r++) {
+    for (j = 0; j < state.cols; j++) {
+      var inp = document.createElement("input");
+      inp.className = "cell";
+      inp.value = (values && values[r] && values[r][j] !== undefined) ? values[r][j] : "0";
+      inp.dataset.r = r;
+      inp.dataset.c = j;
+      inp.autocomplete = "off";
+      inp.spellcheck = false;
+      inp.setAttribute("aria-label", "Row " + (r + 1) + ", column " + (j + 1));
+      inp.style.gridRow = String(r + 1);
+      inp.style.gridColumn = String(2 * j + 1);
+      inp.addEventListener("focus", function () { this.select(); });
+      inp.addEventListener("input", function () { this.classList.remove("bad"); $("editMsg").textContent = ""; });
+      inp.addEventListener("keydown", cellKeydown);
+      grid.appendChild(inp);
+    }
+  }
+  for (j = 0; j < state.cols - 1; j++) {
+    var g = document.createElement("div");
+    g.className = "gutter" + (state.bars.has(j) ? " on" : "");
+    g.dataset.b = j;
+    g.tabIndex = 0;
+    g.setAttribute("role", "button");
+    g.setAttribute("aria-pressed", state.bars.has(j) ? "true" : "false");
+    g.setAttribute("aria-label", "Toggle augmentation line after column " + (j + 1));
+    g.title = "Toggle augmentation line";
+    g.style.gridColumn = String(2 * j + 2);
+    g.style.gridRow = "1 / span " + state.rows;
+    g.addEventListener("click", gutterToggle);
+    g.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); gutterToggle.call(this); }
+    });
+    grid.appendChild(g);
+  }
+}
+function gutterToggle() {
+  var j = Number(this.dataset.b);
+  if (state.bars.has(j)) state.bars.delete(j); else state.bars.add(j);
+  this.classList.toggle("on", state.bars.has(j));
+  this.setAttribute("aria-pressed", state.bars.has(j) ? "true" : "false");
+}
+function cellKeydown(ev) {
+  var r = Number(this.dataset.r), c = Number(this.dataset.c);
+  var go = null;
+  if (ev.key === "Enter" || ev.key === "ArrowDown") go = [r + 1, c];
+  else if (ev.key === "ArrowUp") go = [r - 1, c];
+  else if (ev.key === "ArrowLeft" && this.selectionStart === 0 && this.selectionEnd === 0) go = [r, c - 1];
+  else if (ev.key === "ArrowRight" && this.selectionStart === this.value.length &&
+           this.selectionEnd === this.value.length) go = [r, c + 1];
+  if (!go) return;
+  var target = document.querySelector('input.cell[data-r="' + go[0] + '"][data-c="' + go[1] + '"]');
+  if (target) { ev.preventDefault(); target.focus(); }
+}
+function readGrid() {
+  var M = [], ok = true, firstBad = null;
+  for (var r = 0; r < state.rows; r++) {
+    var row = [];
+    for (var j = 0; j < state.cols; j++) {
+      var inp = document.querySelector('input.cell[data-r="' + r + '"][data-c="' + j + '"]');
+      var f = parseEntry(inp.value);
+      if (!f) {
+        ok = false;
+        inp.classList.add("bad");
+        if (!firstBad) firstBad = inp;
+      }
+      row.push(f);
+    }
+    M.push(row);
+  }
+  if (!ok && firstBad) firstBad.focus();
+  return { ok: ok, M: M };
+}
+function gridIsNonzero() {
+  var cells = document.querySelectorAll("input.cell");
+  for (var i = 0; i < cells.length; i++) {
+    var f = parseEntry(cells[i].value);
+    if (!f || !f.isZero()) return true;
+  }
+  return false;
+}
+
+/* ===================== reduce mode ===================== */
+function populateRowSelects() {
+  ["scRow", "swA", "swB", "cbI", "cbJ"].forEach(function (id) {
+    var sel = $(id);
+    sel.innerHTML = "";
+    for (var i = 0; i < state.rows; i++) {
+      var opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = "R" + (i + 1);
+      sel.appendChild(opt);
+    }
+  });
+  if (state.rows > 1) {
+    $("swB").value = "1";
+    $("cbJ").value = "1";
+  }
+}
+function enterReduceUI() {
+  populateRowSelects();
+  setMode("reduce");
+  renderAll();
+}
+function renderAll() {
+  var M = current();
+  kt($("currentMat"), matrixTex(M, state.bars), true);
+  var status = analyze(M);
+  var badge = $("statusBadge");
+  var panel = $("workpanel");
+  if (status === "rref") {
+    badge.hidden = false;
+    badge.textContent = "RREF ✓";
+    badge.classList.add("rref");
+    panel.classList.add("good");
+  } else if (status === "ref") {
+    badge.hidden = false;
+    badge.textContent = "REF ✓";
+    badge.classList.remove("rref");
+    panel.classList.add("good");
+  } else {
+    badge.hidden = true;
+    panel.classList.remove("good");
+  }
+  $("undoBtn").disabled = state.history.length <= 1;
+  $("restartBtn").disabled = state.history.length <= 1;
+  renderHistory();
+  updatePreviews();
+}
+function renderHistory() {
+  var list = $("historyList");
+  list.innerHTML = "";
+  state.history.forEach(function (h, idx) {
+    var step = document.createElement("div");
+    step.className = "hstep";
+    if (idx === 0) {
+      var lab = document.createElement("p");
+      lab.className = "hlabel";
+      lab.textContent = "Start";
+      step.appendChild(lab);
+    } else {
+      var opEl = document.createElement("div");
+      opEl.className = "hop";
+      kt(opEl, "\\downarrow\\;\\; " + opTex(h.op), false);
+      step.appendChild(opEl);
+    }
+    var matEl = document.createElement("div");
+    matEl.className = "hmat";
+    kt(matEl, matrixTex(h.M, state.bars), true);
+    step.appendChild(matEl);
+    list.appendChild(step);
+  });
+}
+function pushOp(op) {
+  state.history.push({ op: op, M: applyOp(current(), op) });
+  renderAll();
+  syncHash();
+}
+
+/* live previews under each op card */
+function updatePreviews() {
+  var i = Number($("scRow").value), c = parseEntry($("scC").value);
+  $("scEcho").textContent = "R" + (i + 1);
+  kt($("scPrev"), rTex(i) + " \\leftarrow " + (c ? coefTex(c) : "c\\,") + rTex(i), false);
+
+  var a = Number($("swA").value), b = Number($("swB").value);
+  kt($("swPrev"), rTex(a) + " \\leftrightarrow " + rTex(b), false);
+
+  var ti = Number($("cbI").value), tj = Number($("cbJ").value), tc = parseEntry($("cbC").value);
+  $("cbEcho").textContent = "R" + (ti + 1);
+  var mid;
+  if (tc) {
+    var neg = tc.isNeg(), abs = neg ? tc.neg() : tc;
+    mid = (neg ? " - " : " + ") + (abs.isOne() ? "" : abs.tex() + "\\,");
+  } else {
+    mid = " + c\\,";
+  }
+  kt($("cbPrev"), rTex(ti) + " \\leftarrow " + rTex(ti) + mid + rTex(tj), false);
+}
+
+/* ===================== wiring ===================== */
+function init() {
+  /* theme toggle (matches hwGenie course pages; shares the hwg-theme key) */
+  var tbtn = $("themetoggle");
+  function effective() {
+    var a = document.documentElement.getAttribute("data-theme");
+    if (a) return a;
+    return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  function icon() { tbtn.textContent = effective() === "dark" ? "☀" : "☾"; }
+  tbtn.addEventListener("click", function () {
+    var next = effective() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("hwg-theme", next); } catch (e) {}
+    icon();
+  });
+  if (window.matchMedia) {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", icon);
+  }
+  icon();
+
+  /* setup */
+  $("suMake").addEventListener("click", function () {
+    var r = Number($("suRows").value), c = Number($("suCols").value);
+    if (!Number.isInteger(r) || !Number.isInteger(c) || r < 1 || r > MAXR || c < 1 || c > MAXC) {
+      $("suMsg").textContent = "Dimensions must be between 1×1 and " + MAXR + "×" + MAXC + ".";
+      return;
+    }
+    $("suMsg").textContent = "";
+    state.rows = r; state.cols = c;
+    state.bars = new Set();
+    buildGrid(null);
+    setMode("edit");
+  });
+  $("suMakeSys").addEventListener("click", function () {
+    var m = Number($("suEq").value), n = Number($("suVar").value);
+    if (!Number.isInteger(m) || !Number.isInteger(n) || m < 1 || m > MAXR || n < 1 || n + 1 > MAXC) {
+      $("suSysMsg").textContent = "Use 1–" + MAXR + " equations and 1–" + (MAXC - 1) + " variables.";
+      return;
+    }
+    $("suSysMsg").textContent = "";
+    state.rows = m; state.cols = n + 1;
+    state.bars = new Set([n - 1]);   /* line before the constants column */
+    buildGrid(null);
+    setMode("edit");
+  });
+
+  /* edit mode */
+  $("toReduce").addEventListener("click", function () {
+    var res = readGrid();
+    if (!res.ok) {
+      $("editMsg").textContent = "Fix the highlighted entries — use integers, fractions like 1/2, or decimals.";
+      return;
+    }
+    $("editMsg").textContent = "";
+    state.initial = res.M;
+    state.history = [{ op: null, M: res.M }];
+    enterReduceUI();
+    syncHash();
+  });
+  $("backToSetup").addEventListener("click", function () {
+    if (gridIsNonzero() && !confirm("Discard this matrix?")) return;
+    clearHash();
+    setMode("setup");
+  });
+
+  /* reduce mode controls */
+  $("backToEdit").addEventListener("click", function () {
+    if (state.history.length > 1 &&
+        !confirm("Return to editing? This clears the operation history.")) return;
+    buildGrid(stringValues(state.initial));
+    clearHash();
+    setMode("edit");
+  });
+  $("undoBtn").addEventListener("click", function () {
+    if (state.history.length > 1) {
+      state.history.pop();
+      renderAll();
+      syncHash();
+    }
+  });
+  $("restartBtn").addEventListener("click", function () {
+    if (state.history.length > 1 && confirm("Clear all row operations and return to the starting matrix?")) {
+      state.history = state.history.slice(0, 1);
+      renderAll();
+      syncHash();
+    }
+  });
+  $("copyLink").addEventListener("click", function () {
+    syncHash();
+    var url = window.location.href;
+    var btn = this;
+    function done() {
+      btn.textContent = "Copied ✓";
+      setTimeout(function () { btn.textContent = "Copy link"; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { prompt("Copy this link:", url); });
+    } else {
+      prompt("Copy this link:", url);
+    }
+  });
+
+  /* row operations */
+  $("scApply").addEventListener("click", function () {
+    var i = Number($("scRow").value);
+    var c = parseEntry($("scC").value);
+    if (!c) { $("scMsg").textContent = "Enter a number to scale by."; return; }
+    if (c.isZero()) { $("scMsg").textContent = "Scaling by 0 is not a row operation."; return; }
+    $("scMsg").textContent = "";
+    pushOp({ t: "scale", i: i, c: c });
+  });
+  $("swApply").addEventListener("click", function () {
+    var i = Number($("swA").value), j = Number($("swB").value);
+    if (i === j) { $("swMsg").textContent = "Choose two different rows."; return; }
+    $("swMsg").textContent = "";
+    pushOp({ t: "swap", i: i, j: j });
+  });
+  $("cbApply").addEventListener("click", function () {
+    var i = Number($("cbI").value), j = Number($("cbJ").value);
+    var c = parseEntry($("cbC").value);
+    if (i === j) { $("cbMsg").textContent = "Choose two different rows."; return; }
+    if (!c) { $("cbMsg").textContent = "Enter the multiple c."; return; }
+    if (c.isZero()) { $("cbMsg").textContent = "Adding 0 times a row does nothing."; return; }
+    $("cbMsg").textContent = "";
+    pushOp({ t: "combine", i: i, j: j, c: c });
+  });
+
+  /* live previews */
+  ["scRow", "swA", "swB", "cbI", "cbJ"].forEach(function (id) {
+    $(id).addEventListener("change", updatePreviews);
+  });
+  ["scC", "cbC"].forEach(function (id) {
+    $(id).addEventListener("input", updatePreviews);
+  });
+
+  /* shared-link loading */
+  if (!loadFromHash()) setMode("setup");
+  window.addEventListener("hashchange", function () {
+    if (window.location.hash.slice(1) !== lastHash) {
+      if (!loadFromHash()) setMode("setup");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
