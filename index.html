@@ -207,6 +207,21 @@ input.cell.bad { outline: 2px solid var(--alert); outline-offset: -1px; }
 #workpanel.good button.filebox:hover { background: var(--accent); color: var(--bg); }
 .texmat { font-size: 1.2rem; text-align: center; overflow-x: auto; padding: .2rem 0; flex: 1 1 14rem; }
 
+#exportPreview { overflow-x: auto; font-size: .92rem; text-align: center; padding: .2rem 0 .7rem; }
+#exportText {
+  display: block;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  line-height: 1.45;
+  background: var(--code-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: .6rem .7rem;
+  resize: vertical;
+  white-space: pre;
+}
+
 .ops { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: .9rem; margin: 1.1rem 0; }
 @media (max-width: 42rem) { .ops { grid-template-columns: 1fr; } }
 .opcard { background: var(--card-bg); padding: .9rem .95rem 0.6rem; }
@@ -318,8 +333,19 @@ footer.doc {
           <button class="filebox" id="restartBtn">Restart</button>
           <button class="filebox" id="backToEdit">&larr; Edit matrix</button>
           <button class="filebox" id="copyLink">Copy link</button>
+          <button class="filebox" id="exportBtn">Export LaTeX</button>
         </div>
         <div id="currentMat" class="texmat"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="exportPanel" hidden>
+      <p class="card-title">LaTeX export</p>
+      <p class="hint">Copy this into any document that loads <code>amsmath</code>. It renders like:</p>
+      <div id="exportPreview"></div>
+      <textarea id="exportText" readonly rows="12" spellcheck="false" aria-label="Exported LaTeX code"></textarea>
+      <div class="btnrow">
+        <button class="filebox" id="copyTexBtn">Copy LaTeX</button>
       </div>
     </div>
 
@@ -485,16 +511,40 @@ function opTex(op) {
 function cellTex(x) {
   return x.isNeg() ? "\\llap{-}" + x.neg().tex() : x.tex();
 }
-function matrixTex(M, bars) {
+/* plain=true skips the \llap trick (for LaTeX export, where \llap in math
+ * mode is unreliable without mathtools) */
+function matrixTex(M, bars, plain) {
   var cols = M[0].length, spec = "";
   for (var j = 0; j < cols; j++) {
     spec += "c";
     if (bars.has(j)) spec += "|";
   }
   var body = M.map(function (r) {
-    return r.map(cellTex).join(" & ");
+    return r.map(plain ? function (x) { return x.tex(); } : cellTex).join(" & ");
   }).join(" \\\\ ");
   return "\\left[\\begin{array}{" + spec + "} " + body + " \\end{array}\\right]";
+}
+
+/* LaTeX block for pasting into homework: matrices flow horizontally with
+ * each operation printed above an \xrightarrow, wrapped into lines. */
+function exportBodyTex() {
+  /* conservative: continuation lines hold perLine arrow+matrix pairs and
+   * must fit even the default article text width (~345pt) */
+  var perLine = state.cols <= 7 ? 2 : 1;
+  var parts = state.history.map(function (h, idx) {
+    var m = matrixTex(h.M, state.bars, true);
+    return idx === 0 ? m : "\\xrightarrow{" + opTex(h.op) + "}\n" + m;
+  });
+  var lines = [];
+  for (var i = 0; i < parts.length; i += perLine) {
+    lines.push("&" + parts.slice(i, i + perLine).join("\n"));
+  }
+  return "\\begin{aligned}\n" + lines.join(" \\\\[4pt]\n") + "\n\\end{aligned}";
+}
+function exportTex() {
+  return "% Row reduction from " + window.location.href + "\n" +
+    "% (requires amsmath)\n" +
+    "{\\small\n\\[\n" + exportBodyTex() + "\n\\]\n}";
 }
 function kt(el, tex, display) {
   if (window.katex) {
@@ -813,6 +863,14 @@ function renderAll() {
   $("restartBtn").disabled = state.history.length <= 1;
   renderHistory();
   updatePreviews();
+  if (!$("exportPanel").hidden) updateExport();
+}
+function updateExport() {
+  var code = exportTex();
+  var ta = $("exportText");
+  ta.value = code;
+  ta.rows = Math.min(18, code.split("\n").length + 1);
+  kt($("exportPreview"), exportBodyTex(), true);
 }
 function renderHistory() {
   var list = $("historyList");
@@ -979,6 +1037,27 @@ function init() {
       navigator.clipboard.writeText(url).then(done, function () { prompt("Copy this link:", url); });
     } else {
       prompt("Copy this link:", url);
+    }
+  });
+  $("exportBtn").addEventListener("click", function () {
+    var p = $("exportPanel");
+    p.hidden = !p.hidden;
+    if (!p.hidden) {
+      updateExport();
+      p.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+  $("copyTexBtn").addEventListener("click", function () {
+    var ta = $("exportText");
+    var btn = this;
+    function done() {
+      btn.textContent = "Copied ✓";
+      setTimeout(function () { btn.textContent = "Copy LaTeX"; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(done, function () { ta.select(); });
+    } else {
+      ta.select();
     }
   });
 
