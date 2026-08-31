@@ -127,7 +127,7 @@ select, input[type="number"], input.scalar {
   background: var(--bg);
   color: var(--fg);
   border: 1px solid var(--border);
-  padding: .3rem .4rem;
+  padding: .3rem .3rem;
 }
 select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 input[type="number"] { width: 4.2rem; }
@@ -207,12 +207,13 @@ input.cell.bad { outline: 2px solid var(--alert); outline-offset: -1px; }
 #workpanel.good button.filebox:hover { background: var(--accent); color: var(--bg); }
 .texmat { font-size: 1.2rem; text-align: center; overflow-x: auto; padding: .2rem 0; flex: 1 1 14rem; }
 
-.ops { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr)); gap: .9rem; margin: 1.1rem 0; }
-.opcard { background: var(--card-bg); padding: .9rem 1.15rem 0.6rem; }
+.ops { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: .9rem; margin: 1.1rem 0; }
+@media (max-width: 42rem) { .ops { grid-template-columns: 1fr; } }
+.opcard { background: var(--card-bg); padding: .9rem .95rem 0.6rem; }
 .ophead { display: flex; align-items: center; justify-content: space-between; gap: .8rem; min-height: 2.1rem; margin-bottom: .45rem; }
 .ophead .card-title { margin: 0; }
 .oppreview { color: var(--muted); text-align: right; }
-.opform { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: .95rem; }
+.opform { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; font-family: var(--font-mono); font-size: .95rem; }
 
 h2.index-head {
   display: flex;
@@ -342,7 +343,7 @@ footer.doc {
         <p class="msg" id="swMsg"></p>
       </div>
       <div class="opcard">
-        <div class="ophead"><p class="card-title">Combine</p><div class="oppreview" id="cbPrev"></div></div>
+        <div class="ophead"><p class="card-title">Replace</p><div class="oppreview" id="cbPrev"></div></div>
         <div class="opform">
           <select id="cbI" aria-label="Row to replace"></select>
           <input class="scalar" id="cbC" placeholder="c" aria-label="Multiple of the other row">

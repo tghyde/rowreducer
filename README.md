@@ -15,7 +15,7 @@ styled to match [hwGenie](https://github.com/tghyde/hwgenie) course sites.
   column boundary (so [A | I] for inversion works too).
 - Edit mode uses input boxes; reduce mode renders the matrix with KaTeX.
 - Three row operations — Scale (Rᵢ → c·Rᵢ, c ≠ 0), Swap (Rᵢ ↔ Rⱼ), and
-  Combine (Rᵢ → Rᵢ + c·Rⱼ) — with live previews, plus Undo and Restart.
+  Replace (Rᵢ → Rᵢ + c·Rⱼ) — with live previews, plus Undo and Restart.
 - A badge appears when the matrix reaches REF or RREF. Convention: REF
   requires zero rows at the bottom and each leading entry strictly to the
   right of the one above (leading entries need **not** be 1); RREF
