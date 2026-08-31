@@ -314,7 +314,7 @@ footer.doc {
       <div class="workgrid">
         <div class="workside">
           <p class="card-title">Current matrix</p>
-          <button class="filebox" id="undoBtn">&#8630; Undo</button>
+          <button class="filebox" id="undoBtn">&#8617; Undo</button>
           <button class="filebox" id="restartBtn">Restart</button>
           <button class="filebox" id="backToEdit">&larr; Edit matrix</button>
           <button class="filebox" id="copyLink">Copy link</button>
@@ -515,6 +515,24 @@ var state = {
 };
 var lastHash = "";
 
+/* Undo works on whole-state snapshots, so it can reverse a row operation,
+ * a restart, or a matrix edit (jumping back to the reduction as it was
+ * before the edit).  Frac values and history entries are immutable, so
+ * shallow copies are enough. */
+var undoStack = [];
+var pendingEditSnapshot = null;
+var UNDO_MAX = 200;
+function snapshot() {
+  return {
+    rows: state.rows, cols: state.cols, bars: new Set(state.bars),
+    initial: state.initial, history: state.history.slice()
+  };
+}
+function pushUndo(snap) {
+  undoStack.push(snap);
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+}
+
 function $(id) { return document.getElementById(id); }
 
 /* ===================== share links =====================
@@ -621,6 +639,8 @@ function loadFromHash() {
     $("hashMsg").textContent = "Couldn’t read the shared link — starting fresh.";
     return false;
   }
+  undoStack.length = 0;
+  pendingEditSnapshot = null;
   state.rows = dec.rows;
   state.cols = dec.cols;
   state.bars = dec.bars;
@@ -669,7 +689,15 @@ function buildGrid(values) {
       inp.setAttribute("aria-label", "Row " + (r + 1) + ", column " + (j + 1));
       inp.style.gridRow = String(r + 1);
       inp.style.gridColumn = String(2 * j + 1);
-      inp.addEventListener("focus", function () { this.select(); });
+      inp.addEventListener("focus", function () {
+        /* the default 0 clears on focus so typing can start immediately;
+         * blur restores it if nothing was entered */
+        if (this.value.trim() === "0") { this.value = ""; }
+        else { this.select(); }
+      });
+      inp.addEventListener("blur", function () {
+        if (this.value.trim() === "") this.value = "0";
+      });
       inp.addEventListener("input", function () { this.classList.remove("bad"); $("editMsg").textContent = ""; });
       inp.addEventListener("keydown", cellKeydown);
       grid.appendChild(inp);
@@ -781,7 +809,7 @@ function renderAll() {
     badge.hidden = true;
     panel.classList.remove("good");
   }
-  $("undoBtn").disabled = state.history.length <= 1;
+  $("undoBtn").disabled = undoStack.length === 0;
   $("restartBtn").disabled = state.history.length <= 1;
   renderHistory();
   updatePreviews();
@@ -811,6 +839,7 @@ function renderHistory() {
   });
 }
 function pushOp(op) {
+  pushUndo(snapshot());
   state.history.push({ op: op, M: applyOp(current(), op) });
   renderAll();
   syncHash();
@@ -890,6 +919,15 @@ function init() {
       return;
     }
     $("editMsg").textContent = "";
+    if (pendingEditSnapshot) {
+      /* record the pre-edit reduction, unless nothing actually changed */
+      var snap = pendingEditSnapshot;
+      var changed = snap.history.length > 1 ||
+        JSON.stringify(stringValues(snap.initial)) !== JSON.stringify(stringValues(res.M)) ||
+        JSON.stringify(Array.from(snap.bars).sort()) !== JSON.stringify(Array.from(state.bars).sort());
+      if (changed) pushUndo(snap);
+      pendingEditSnapshot = null;
+    }
     state.initial = res.M;
     state.history = [{ op: null, M: res.M }];
     enterReduceUI();
@@ -902,19 +940,28 @@ function init() {
 
   /* reduce mode controls */
   $("backToEdit").addEventListener("click", function () {
+    pendingEditSnapshot = snapshot();
     buildGrid(stringValues(state.initial));
     clearHash();
     setMode("edit");
   });
   $("undoBtn").addEventListener("click", function () {
-    if (state.history.length > 1) {
-      state.history.pop();
-      renderAll();
-      syncHash();
-    }
+    var snap = undoStack.pop();
+    if (!snap) return;
+    var repop = snap.rows !== state.rows;
+    state.rows = snap.rows;
+    state.cols = snap.cols;
+    state.bars = snap.bars;
+    state.initial = snap.initial;
+    state.history = snap.history;
+    if (repop) populateRowSelects();
+    setMode("reduce");
+    renderAll();
+    syncHash();
   });
   $("restartBtn").addEventListener("click", function () {
     if (state.history.length > 1) {
+      pushUndo(snapshot());
       state.history = state.history.slice(0, 1);
       renderAll();
       syncHash();
@@ -969,6 +1016,15 @@ function init() {
       /* grow the box when a long scalar is typed; never shrink below default */
       this.style.width = Math.max(4.5, this.value.length + 2) + "ch";
       updatePreviews();
+    });
+  });
+
+  /* Enter anywhere in an operation's controls applies that operation */
+  [["scRow", "scApply"], ["scC", "scApply"],
+   ["swA", "swApply"], ["swB", "swApply"],
+   ["cbI", "cbApply"], ["cbC", "cbApply"], ["cbJ", "cbApply"]].forEach(function (p) {
+    $(p[0]).addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); $(p[1]).click(); }
     });
   });
 
