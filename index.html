@@ -511,28 +511,33 @@ function opTex(op) {
 function cellTex(x) {
   return x.isNeg() ? "\\llap{-}" + x.neg().tex() : x.tex();
 }
-/* plain=true skips the \llap trick (for LaTeX export, where \llap in math
- * mode is unreliable without mathtools) */
-function matrixTex(M, bars, plain) {
+/* Real-LaTeX version of the hanging minus: \llap{$-$} needs no packages
+ * (the inner $-$ gives a true math minus inside the zero-width box).
+ * KaTeX instead accepts \llap{-} directly, so the on-page preview and the
+ * exported code use different spellings of the same layout. */
+function exportCellTex(x) {
+  return x.isNeg() ? "\\llap{$-$}" + x.neg().tex() : x.tex();
+}
+function matrixTex(M, bars, latex) {
   var cols = M[0].length, spec = "";
   for (var j = 0; j < cols; j++) {
     spec += "c";
     if (bars.has(j)) spec += "|";
   }
   var body = M.map(function (r) {
-    return r.map(plain ? function (x) { return x.tex(); } : cellTex).join(" & ");
+    return r.map(latex ? exportCellTex : cellTex).join(" & ");
   }).join(" \\\\ ");
   return "\\left[\\begin{array}{" + spec + "} " + body + " \\end{array}\\right]";
 }
 
 /* LaTeX block for pasting into homework: matrices flow horizontally with
  * each operation printed above an \xrightarrow, wrapped into lines. */
-function exportBodyTex() {
+function exportBodyTex(forPreview) {
   /* conservative: continuation lines hold perLine arrow+matrix pairs and
    * must fit even the default article text width (~345pt) */
   var perLine = state.cols <= 7 ? 2 : 1;
   var parts = state.history.map(function (h, idx) {
-    var m = matrixTex(h.M, state.bars, true);
+    var m = matrixTex(h.M, state.bars, !forPreview);
     return idx === 0 ? m : "\\xrightarrow{" + opTex(h.op) + "}\n" + m;
   });
   var lines = [];
@@ -541,10 +546,13 @@ function exportBodyTex() {
   }
   return "\\begin{aligned}\n" + lines.join(" \\\\[4pt]\n") + "\n\\end{aligned}";
 }
+/* The wider \arraycolsep keeps hanging minus signs clear of brackets and
+ * augmentation bars; \arraystretch gives fraction rows breathing room. */
 function exportTex() {
   return "% Row reduction from " + window.location.href + "\n" +
     "% (requires amsmath)\n" +
-    "{\\small\n\\[\n" + exportBodyTex() + "\n\\]\n}";
+    "{\\small\\setlength{\\arraycolsep}{9pt}\\renewcommand{\\arraystretch}{1.15}\n" +
+    "\\[\n" + exportBodyTex() + "\n\\]\n}";
 }
 function kt(el, tex, display) {
   if (window.katex) {
@@ -870,7 +878,7 @@ function updateExport() {
   var ta = $("exportText");
   ta.value = code;
   ta.rows = Math.min(18, code.split("\n").length + 1);
-  kt($("exportPreview"), exportBodyTex(), true);
+  kt($("exportPreview"), exportBodyTex(true), true);
 }
 function renderHistory() {
   var list = $("historyList");
