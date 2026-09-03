@@ -207,10 +207,11 @@ input.cell.bad { outline: 2px solid var(--alert); outline-offset: -1px; }
 #workpanel.good button.filebox:hover { background: var(--accent); color: var(--bg); }
 .texmat { font-size: 1.2rem; text-align: center; overflow-x: auto; padding: .2rem 0; flex: 1 1 14rem; }
 
-#exportPreview { overflow-x: auto; font-size: .92rem; text-align: center; padding: .2rem 0 .7rem; }
-#exportText {
+/* shown only if the clipboard is unavailable, so the code can be copied by hand */
+#texFallback {
   display: block;
   width: 100%;
+  margin-top: .8rem;
   font-family: var(--font-mono);
   font-size: .78rem;
   line-height: 1.45;
@@ -221,6 +222,7 @@ input.cell.bad { outline: 2px solid var(--alert); outline-offset: -1px; }
   resize: vertical;
   white-space: pre;
 }
+#texFallback[hidden] { display: none; }
 
 .ops { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: .9rem; margin: 1.1rem 0; }
 @media (max-width: 42rem) { .ops { grid-template-columns: 1fr; } }
@@ -310,6 +312,7 @@ footer.doc {
     <p class="card-title">Enter your matrix</p>
     <p class="hint">Entries can be integers (<code>-3</code>), fractions (<code>1/2</code>), or decimals (<code>0.25</code>).
     Click the gap between two columns to toggle an augmentation line.</p>
+    <p class="hint" id="editNote" hidden></p>
     <div class="matwrap">
       <div class="bracket bl" aria-hidden="true"></div>
       <div id="grid"></div>
@@ -333,20 +336,12 @@ footer.doc {
           <button class="filebox" id="restartBtn">Restart</button>
           <button class="filebox" id="backToEdit">&larr; Edit matrix</button>
           <button class="filebox" id="copyLink">Copy link</button>
-          <button class="filebox" id="exportBtn">Export LaTeX</button>
+          <button class="filebox" id="copyTexBtn">Copy LaTeX</button>
         </div>
         <div id="currentMat" class="texmat"></div>
       </div>
-    </div>
-
-    <div class="panel" id="exportPanel" hidden>
-      <p class="card-title">LaTeX export</p>
-      <p class="hint">Copy this into any document that loads <code>amsmath</code>. It renders like:</p>
-      <div id="exportPreview"></div>
-      <textarea id="exportText" readonly rows="12" spellcheck="false" aria-label="Exported LaTeX code"></textarea>
-      <div class="btnrow">
-        <button class="filebox" id="copyTexBtn">Copy LaTeX</button>
-      </div>
+      <p class="msg" id="texMsg"></p>
+      <textarea id="texFallback" readonly rows="10" spellcheck="false" aria-label="LaTeX code" hidden></textarea>
     </div>
 
     <div class="ops">
@@ -513,8 +508,8 @@ function cellTex(x) {
 }
 /* Real-LaTeX version of the hanging minus: \llap{$-$} needs no packages
  * (the inner $-$ gives a true math minus inside the zero-width box).
- * KaTeX instead accepts \llap{-} directly, so the on-page preview and the
- * exported code use different spellings of the same layout. */
+ * KaTeX instead accepts \llap{-} directly, so the page and the exported
+ * code use different spellings of the same layout. */
 function exportCellTex(x) {
   return x.isNeg() ? "\\llap{$-$}" + x.neg().tex() : x.tex();
 }
@@ -532,12 +527,12 @@ function matrixTex(M, bars, latex) {
 
 /* LaTeX block for pasting into homework: matrices flow horizontally with
  * each operation printed above an \xrightarrow, wrapped into lines. */
-function exportBodyTex(forPreview) {
+function exportBodyTex() {
   /* conservative: continuation lines hold perLine arrow+matrix pairs and
    * must fit even the default article text width (~345pt) */
   var perLine = state.cols <= 7 ? 2 : 1;
   var parts = state.history.map(function (h, idx) {
-    var m = matrixTex(h.M, state.bars, !forPreview);
+    var m = matrixTex(h.M, state.bars, true);
     return idx === 0 ? m : "\\xrightarrow{" + opTex(h.op) + "}\n" + m;
   });
   var lines = [];
@@ -579,6 +574,10 @@ var lastHash = "";
  * shallow copies are enough. */
 var undoStack = [];
 var pendingEditSnapshot = null;
+/* true while editing the starting matrix of an existing reduction: the
+ * recorded operations are replayed on the edited matrix instead of being
+ * discarded.  "New matrix" clears it (a fresh matrix may have new dimensions). */
+var editReplay = false;
 var UNDO_MAX = 200;
 function snapshot() {
   return {
@@ -719,6 +718,11 @@ function setMode(m) {
   $("setup").hidden = m !== "setup";
   $("editor").hidden = m !== "edit";
   $("reducer").hidden = m !== "reduce";
+  hideTexFallback();
+}
+function hideTexFallback() {
+  $("texFallback").hidden = true;
+  $("texMsg").textContent = "";
 }
 function current() { return state.history[state.history.length - 1].M; }
 function stringValues(M) {
@@ -871,14 +875,7 @@ function renderAll() {
   $("restartBtn").disabled = state.history.length <= 1;
   renderHistory();
   updatePreviews();
-  if (!$("exportPanel").hidden) updateExport();
-}
-function updateExport() {
-  var code = exportTex();
-  var ta = $("exportText");
-  ta.value = code;
-  ta.rows = Math.min(18, code.split("\n").length + 1);
-  kt($("exportPreview"), exportBodyTex(true), true);
+  hideTexFallback();
 }
 function renderHistory() {
   var list = $("historyList");
@@ -930,6 +927,19 @@ function updatePreviews() {
   kt($("cbPrev"), rTex(ti) + " \\to " + rTex(ti) + mid + rTex(tj), false);
 }
 
+/* Edit-mode note and button label depend on whether an existing reduction
+ * is being edited (its operations get replayed) or a fresh matrix entered. */
+function showEditNote() {
+  var n = editReplay && pendingEditSnapshot ? pendingEditSnapshot.history.length - 1 : 0;
+  var note = $("editNote");
+  note.hidden = n === 0;
+  if (n > 0) {
+    note.textContent = "Your " + n + " row operation" + (n === 1 ? "" : "s") +
+      " will be re-applied to the edited matrix. Use Restart afterwards if you want to begin again.";
+  }
+  $("toReduce").innerHTML = n > 0 ? "Apply edits &rarr;" : "Reduce &rarr;";
+}
+
 /* ===================== wiring ===================== */
 function init() {
   /* theme toggle (matches hwGenie course pages; shares the hwg-theme key) */
@@ -961,7 +971,9 @@ function init() {
     $("suMsg").textContent = "";
     state.rows = r; state.cols = c;
     state.bars = new Set();
+    editReplay = false;
     buildGrid(null);
+    showEditNote();
     setMode("edit");
   });
   $("suMakeSys").addEventListener("click", function () {
@@ -973,7 +985,9 @@ function init() {
     $("suSysMsg").textContent = "";
     state.rows = m; state.cols = n + 1;
     state.bars = new Set([n - 1]);   /* line before the constants column */
+    editReplay = false;
     buildGrid(null);
+    showEditNote();
     setMode("edit");
   });
 
@@ -985,17 +999,27 @@ function init() {
       return;
     }
     $("editMsg").textContent = "";
+    var ops = [];
     if (pendingEditSnapshot) {
-      /* record the pre-edit reduction, unless nothing actually changed */
       var snap = pendingEditSnapshot;
-      var changed = snap.history.length > 1 ||
+      pendingEditSnapshot = null;
+      if (editReplay) {
+        /* same dimensions guaranteed (the editor can't change them), so the
+         * recorded operations still apply to the edited matrix */
+        ops = snap.history.slice(1).map(function (h) { return h.op; });
+      }
+      /* record the pre-edit reduction for undo, unless nothing changed */
+      var changed = (!editReplay && snap.history.length > 1) ||
         JSON.stringify(stringValues(snap.initial)) !== JSON.stringify(stringValues(res.M)) ||
         JSON.stringify(Array.from(snap.bars).sort()) !== JSON.stringify(Array.from(state.bars).sort());
       if (changed) pushUndo(snap);
-      pendingEditSnapshot = null;
     }
+    editReplay = false;
     state.initial = res.M;
     state.history = [{ op: null, M: res.M }];
+    ops.forEach(function (op) {
+      state.history.push({ op: op, M: applyOp(current(), op) });
+    });
     enterReduceUI();
     syncHash();
   });
@@ -1007,7 +1031,9 @@ function init() {
   /* reduce mode controls */
   $("backToEdit").addEventListener("click", function () {
     pendingEditSnapshot = snapshot();
+    editReplay = true;
     buildGrid(stringValues(state.initial));
+    showEditNote();
     clearHash();
     setMode("edit");
   });
@@ -1047,25 +1073,30 @@ function init() {
       prompt("Copy this link:", url);
     }
   });
-  $("exportBtn").addEventListener("click", function () {
-    var p = $("exportPanel");
-    p.hidden = !p.hidden;
-    if (!p.hidden) {
-      updateExport();
-      p.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  });
+  /* copies the whole reduction as an amsmath block; if the clipboard is
+   * blocked, the code is shown in a box so it can be copied by hand */
   $("copyTexBtn").addEventListener("click", function () {
-    var ta = $("exportText");
+    syncHash();
+    var code = exportTex();
     var btn = this;
     function done() {
+      hideTexFallback();
       btn.textContent = "Copied ✓";
       setTimeout(function () { btn.textContent = "Copy LaTeX"; }, 1600);
     }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(ta.value).then(done, function () { ta.select(); });
-    } else {
+    function fallback() {
+      var ta = $("texFallback");
+      ta.value = code;
+      ta.rows = Math.min(18, code.split("\n").length + 1);
+      ta.hidden = false;
+      $("texMsg").textContent = "Clipboard unavailable — select the code below and copy it.";
+      ta.focus();
       ta.select();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(done, fallback);
+    } else {
+      fallback();
     }
   });
 

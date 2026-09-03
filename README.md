@@ -21,10 +21,14 @@ styled to match [hwGenie](https://github.com/tghyde/hwgenie) course sites.
   right of the one above (leading entries need **not** be 1); RREF
   additionally requires each pivot to be 1 and alone in its column.
 - Full visual history of every matrix and operation.
-- **Export LaTeX**: one click produces an `amsmath` block of the whole
-  reduction laid out horizontally (`\xrightarrow` arrows with the operation
-  above each one, wrapped into lines, `\small`), with a rendered preview and
-  a copy button — ready to paste into homework.
+- **Edit matrix** reopens the starting matrix mid-reduction; the recorded
+  operations are replayed on the edited entries, so fixing a typo does not
+  throw away the work so far (Undo reverses the edit, Restart clears the ops).
+- **Copy LaTeX**: one click puts an `amsmath` block of the whole reduction
+  on the clipboard, laid out horizontally (`\xrightarrow` arrows with the
+  operation above each one, wrapped into lines, `\small`) — ready to paste
+  into homework. If the browser blocks clipboard access, the code appears in
+  a box to copy by hand.
 - The URL hash always encodes the current reduction, so copying the link
   (or the **Copy link** button) reproduces the whole calculation.
 
