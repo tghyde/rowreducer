@@ -311,7 +311,7 @@ footer.doc {
   <section id="editor" class="panel" hidden>
     <p class="card-title">Enter your matrix</p>
     <p class="hint">Entries can be integers (<code>-3</code>), fractions (<code>1/2</code>), or decimals (<code>0.25</code>).
-    Click the gap between two columns to toggle an augmentation line.</p>
+    Click the gap between two columns to toggle an augmentation line. Press Enter when you’re done.</p>
     <p class="hint" id="editNote" hidden></p>
     <div class="matwrap">
       <div class="bracket bl" aria-hidden="true"></div>
@@ -789,10 +789,18 @@ function gutterToggle() {
   this.classList.toggle("on", state.bars.has(j));
   this.setAttribute("aria-pressed", state.bars.has(j) ? "true" : "false");
 }
+/* Enter finishes entry and goes straight to reduce mode; arrows (and Tab)
+ * move between cells. */
 function cellKeydown(ev) {
+  if (ev.key === "Enter") {
+    ev.preventDefault();
+    if (this.value.trim() === "") this.value = "0";   /* focus cleared a default 0 */
+    $("toReduce").click();
+    return;
+  }
   var r = Number(this.dataset.r), c = Number(this.dataset.c);
   var go = null;
-  if (ev.key === "Enter" || ev.key === "ArrowDown") go = [r + 1, c];
+  if (ev.key === "ArrowDown") go = [r + 1, c];
   else if (ev.key === "ArrowUp") go = [r - 1, c];
   else if (ev.key === "ArrowLeft" && this.selectionStart === 0 && this.selectionEnd === 0) go = [r, c - 1];
   else if (ev.key === "ArrowRight" && this.selectionStart === this.value.length &&
