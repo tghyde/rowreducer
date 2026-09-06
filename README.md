@@ -16,6 +16,12 @@ styled to match [hwGenie](https://github.com/tghyde/hwgenie) course sites.
 - Edit mode uses input boxes; reduce mode renders the matrix with KaTeX.
 - Three row operations — Scale (Rᵢ → c·Rᵢ, c ≠ 0), Swap (Rᵢ ↔ Rⱼ), and
   Replace (Rᵢ → Rᵢ + c·Rⱼ) — with live previews, plus Undo and Restart.
+- **Animate steps** (on by default; the choice is remembered): each
+  operation is acted out on the matrix so newcomers can see what it does —
+  swapped rows slide out to either side, trade levels and slide back in, a “× c” badge sweeps along a scaled
+  row changing each entry as it passes, and for a replacement a copy of Rⱼ
+  slides out beside the matrix, is swept into c·Rⱼ there, then slides into
+  Rᵢ. Skipped when the system asks for reduced motion.
 - A badge appears when the matrix reaches REF or RREF. Convention: REF
   requires zero rows at the bottom and each leading entry strictly to the
   right of the one above (leading entries need **not** be 1); RREF
