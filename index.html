@@ -886,7 +886,17 @@ function renderAll() {
   cancelAnim();
   var M = current();
   kt($("currentMat"), matrixTex(M, state.bars), true);
-  var status = analyze(M);
+  showStatus(true);
+  $("undoBtn").disabled = undoStack.length === 0;
+  $("restartBtn").disabled = state.history.length <= 1;
+  renderHistory();
+  updatePreviews();
+  hideTexFallback();
+}
+/* REF/RREF badge and green panel; hidden while an operation is being
+ * animated so the result is revealed only once the motion has finished */
+function showStatus(on) {
+  var status = on ? analyze(current()) : "none";
   var badge = $("statusBadge");
   var panel = $("workpanel");
   if (status === "rref") {
@@ -903,11 +913,6 @@ function renderAll() {
     badge.hidden = true;
     panel.classList.remove("good");
   }
-  $("undoBtn").disabled = undoStack.length === 0;
-  $("restartBtn").disabled = state.history.length <= 1;
-  renderHistory();
-  updatePreviews();
-  hideTexFallback();
 }
 function renderHistory() {
   var list = $("historyList");
@@ -990,8 +995,11 @@ function showEditNote() {
  * rendering exactly, so any re-render mid-animation just cuts it short.
  */
 var anim = null;   /* { layer, anims: Animation[], timers: number[] } while one plays */
-/* Durations in ms, tuned with students in mind. */
+/* Durations in ms, tuned with students in mind; `pace` is a percentage
+ * applied to every delay and duration. */
 var timing = {
+  pace: 200,
+  pop: 355,      /* an entry popping in (out is a bit quicker) */
   swOut: 570,    /* swap: rows slide out to either side */
   swLevel: 380,  /*       move to each other's level */
   swIn: 430,     /*       slide back in */
@@ -1004,8 +1012,7 @@ var timing = {
   rpPerCol: 135, /*          ... this much per column */
   rpLevel: 380,  /*          move to R_i's level */
   rpIn: 430,     /*          slide in */
-  rpMerge: 570,  /*          merge and settle */
-  pop: 355       /* an entry popping in (out is a bit quicker) */
+  rpMerge: 570   /*          merge and settle */
 };
 
 function animEnabled() {
@@ -1020,6 +1027,7 @@ function cancelAnim() {
   a.timers.forEach(clearTimeout);
   a.anims.forEach(function (x) { x.cancel(); });
   if (a.layer.parentNode) a.layer.parentNode.removeChild(a.layer);
+  showStatus(true);
 }
 /* The inline-block holding each entry of the KaTeX array rendered in root,
  * as cells[r][c]; null if the markup isn't as expected. */
@@ -1098,13 +1106,20 @@ function playAnim(p, op) {
   layer.className = "animlayer";
   p.host.appendChild(layer);
   anim = { layer: layer, anims: [], timers: [] };
+  showStatus(false);   /* revealed by cancelAnim when the animation ends */
   var origin = layer.getBoundingClientRect();
   var pos = cells.map(function (row) { return row.map(function (el) { return spot(el, origin); }); });
   var C = "translate(-50%,-50%) ";   /* ghosts and badges are centred on their left/top */
 
-  function run(el, kf, o) { var a = el.animate(kf, o); anim.anims.push(a); return a; }
-  function after(ms, fn) { anim.timers.push(setTimeout(fn, ms)); }
-  var T = timing, POP = T.pop;
+  var T = timing, POP = T.pop, PACE = T.pace / 100;
+  function run(el, kf, o) {
+    if (o.delay) o.delay *= PACE;
+    o.duration *= PACE;
+    var a = el.animate(kf, o);
+    anim.anims.push(a);
+    return a;
+  }
+  function after(ms, fn) { anim.timers.push(setTimeout(fn, ms * PACE)); }
   /* hides a row's real cells for ms; `release` lets them show again afterwards
    * (otherwise they stay hidden until the animation is cancelled) */
   function hide(r, ms, release) {
