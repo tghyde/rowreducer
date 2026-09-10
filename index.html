@@ -583,7 +583,7 @@ function summaryTex() {
     "{\\small\\setlength{\\arraycolsep}{9pt}\\renewcommand{\\arraystretch}{1.15}\n" +
     "\\[\n" + matrixTex(first, state.bars, true) + "\n" +
     "\\;\\rightsquigarrow\\;\n" + matrixTex(last, state.bars, true) + "\n\\]\n" +
-    "\\href{" + url + "}{Full calculation}\n}";
+    "\\begin{center}\\footnotesize(\\href{" + url + "}{Link to full calculation.})\\end{center}\n}";
 }
 function kt(el, tex, display) {
   if (window.katex) {

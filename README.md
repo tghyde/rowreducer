@@ -36,8 +36,9 @@ styled to match [hwGenie](https://github.com/tghyde/hwgenie) course sites.
   into homework. If the browser blocks clipboard access, the code appears in
   a box to copy by hand.
 - **Copy summary**: for reductions too long to paste, copies just the
-  starting matrix, a `\rightsquigarrow`, the final matrix, and an `\href`
-  link back to the full calculation (requires `amssymb` and `hyperref`).
+  starting matrix, a `\rightsquigarrow`, the final matrix, and a centered
+  "(Link to full calculation.)" `\href` beneath them (requires `amssymb`
+  and `hyperref`).
 - The URL hash always encodes the current reduction, so copying the link
   (or the **Copy link** button) reproduces the whole calculation.
 
