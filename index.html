@@ -85,6 +85,23 @@ a { color: var(--accent); }
 }
 #themetoggle:hover { background: var(--code-bg); }
 
+#courselink {
+  position: fixed;
+  top: .5rem;
+  left: .7rem;
+  z-index: 60;
+  background: var(--card-bg);
+  color: var(--accent);
+  text-decoration: none;
+  padding: .3rem .6rem;
+  font-family: var(--font-ui);
+  font-size: .85rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+#courselink:hover { background: var(--accent); color: var(--bg); }
+
 header.doc { text-align: center; margin: 1rem 0 1.5rem; }
 header.doc h1 { font-size: 1.6rem; margin: 0; font-weight: 700; }
 p.tagline { color: var(--muted); font-size: .95rem; margin: .4rem 0 0; }
@@ -295,6 +312,7 @@ footer.doc {
 </style>
 </head>
 <body>
+<a id="courselink" href="https://tghyde.github.io/math221-fall2026/" title="Back to the Math 221 course site">&larr; Math 221</a>
 <button id="themetoggle" aria-label="Toggle light or dark theme" title="Toggle light/dark"></button>
 <main>
   <header class="doc">
