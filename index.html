@@ -359,6 +359,7 @@ footer.doc {
           <button class="filebox" id="backToEdit">&larr; Edit matrix</button>
           <button class="filebox" id="copyLink">Copy link</button>
           <button class="filebox" id="copyTexBtn">Copy LaTeX</button>
+          <button class="filebox" id="copySummaryBtn">Copy summary</button>
           <label class="fld" for="animToggle"><input type="checkbox" id="animToggle" checked> Animate steps</label>
         </div>
         <div id="currentMat" class="texmat"></div>
@@ -571,6 +572,18 @@ function exportTex() {
     "% (requires amsmath)\n" +
     "{\\small\\setlength{\\arraycolsep}{9pt}\\renewcommand{\\arraystretch}{1.15}\n" +
     "\\[\n" + exportBodyTex() + "\n\\]\n}";
+}
+/* Short form for homework where the full reduction would run too long:
+ * starting matrix, squiggle arrow, final matrix, and a link back to the
+ * complete calculation (the URL hash holds every step). */
+function summaryTex() {
+  var url = window.location.href;
+  var first = state.history[0].M, last = current();
+  return "% Row reduction summary (requires amsmath, amssymb, hyperref)\n" +
+    "{\\small\\setlength{\\arraycolsep}{9pt}\\renewcommand{\\arraystretch}{1.15}\n" +
+    "\\[\n" + matrixTex(first, state.bars, true) + "\n" +
+    "\\;\\rightsquigarrow\\;\n" + matrixTex(last, state.bars, true) + "\n\\]\n" +
+    "\\href{" + url + "}{Full calculation}\n}";
 }
 function kt(el, tex, display) {
   if (window.katex) {
@@ -1439,32 +1452,38 @@ function init() {
       prompt("Copy this link:", url);
     }
   });
-  /* copies the whole reduction as an amsmath block; if the clipboard is
-   * blocked, the code is shown in a box so it can be copied by hand */
-  $("copyTexBtn").addEventListener("click", function () {
-    syncHash();
-    var code = exportTex();
-    var btn = this;
-    function done() {
-      hideTexFallback();
-      btn.textContent = "Copied ✓";
-      setTimeout(function () { btn.textContent = "Copy LaTeX"; }, 1600);
-    }
-    function fallback() {
-      var ta = $("texFallback");
-      ta.value = code;
-      ta.rows = Math.min(18, code.split("\n").length + 1);
-      ta.hidden = false;
-      $("texMsg").textContent = "Clipboard unavailable — select the code below and copy it.";
-      ta.focus();
-      ta.select();
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(code).then(done, fallback);
-    } else {
-      fallback();
-    }
-  });
+  /* copies LaTeX code to the clipboard; if the clipboard is blocked, the
+   * code is shown in a box so it can be copied by hand */
+  function copyTexHandler(label, makeCode) {
+    return function () {
+      syncHash();
+      var code = makeCode();
+      var btn = this;
+      function done() {
+        hideTexFallback();
+        btn.textContent = "Copied ✓";
+        setTimeout(function () { btn.textContent = label; }, 1600);
+      }
+      function fallback() {
+        var ta = $("texFallback");
+        ta.value = code;
+        ta.rows = Math.min(18, code.split("\n").length + 1);
+        ta.hidden = false;
+        $("texMsg").textContent = "Clipboard unavailable — select the code below and copy it.";
+        ta.focus();
+        ta.select();
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done, fallback);
+      } else {
+        fallback();
+      }
+    };
+  }
+  /* the whole reduction as an amsmath block */
+  $("copyTexBtn").addEventListener("click", copyTexHandler("Copy LaTeX", exportTex));
+  /* just the first and last matrices, with a link to everything in between */
+  $("copySummaryBtn").addEventListener("click", copyTexHandler("Copy summary", summaryTex));
 
   /* row operations */
   $("scApply").addEventListener("click", function () {
